@@ -7,7 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "https://polling-system-frontend-git-master-yagya-sonis-projects.vercel.app/", // Your React app's origin
+        origin: "https://polling-system-frontend-9f1c-git-master-yagya-sonis-projects.vercel.app/", // Your React app's origin
         methods: ["GET", "POST"]
     }
 });
