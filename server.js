@@ -5,15 +5,31 @@ const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
+
+// Use an environment variable for the frontend origin
+// In production, Render will inject process.env.FRONTEND_URL
+// In development, it defaults to http://localhost:3000
+const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+// --- IMPORTANT: Ensure the URL for CORS does NOT have a trailing slash ---
+// The browser's Origin header will not have it.
+const cleanedFrontendOrigin = frontendOrigin.endsWith('/') ? frontendOrigin.slice(0, -1) : frontendOrigin;
+
+// Use express-cors middleware for regular HTTP API requests
+app.use(cors({
+    origin: cleanedFrontendOrigin, // Use the cleaned URL here
+    methods: ["GET", "POST", "PUT", "DELETE"] // Explicitly list all methods you use
+}));
+app.use(express.json());
+
+// --- THIS IS THE CRITICAL FIX FOR SOCKET.IO CORS ---
 const io = socketIo(server, {
     cors: {
-        origin: "https://polling-system-frontend-assignment-c6kqqtlub.vercel.app", // Your React app's origin
-        methods: ["GET", "POST"]
+        origin: cleanedFrontendOrigin, // <--- Use the cleaned URL here as well!
+        methods: ["GET", "POST"],
+        credentials: true // Usually good to include if your frontend ever sends cookies/auth headers
     }
 });
-
-app.use(cors());
-app.use(express.json());
 
 let activePoll = null;
 let pollResults = {};
@@ -23,12 +39,9 @@ let pollVotesByStudent = {};
 app.post('/api/polls', (req, res) => {
     const { question, options, durationSeconds } = req.body;
 
-    // --- CRITICAL FIX: Ensure durationSeconds is always a valid number ---
     let parsedDurationSeconds = parseInt(durationSeconds, 10);
-    // If parsedDurationSeconds is NaN (from undefined, null, or non-numeric string) or less than 5,
-    // default to 60 seconds (or a minimum of 5 seconds if explicitly set lower).
     if (isNaN(parsedDurationSeconds) || parsedDurationSeconds < 5) {
-        parsedDurationSeconds = 60; // Default to 60 seconds if invalid or too low
+        parsedDurationSeconds = 60;
         console.warn(`[SERVER] Received invalid or low durationSeconds (${durationSeconds}). Defaulting to ${parsedDurationSeconds}s.`);
     }
 
@@ -36,7 +49,7 @@ app.post('/api/polls', (req, res) => {
         id: Date.now().toString(),
         question,
         options: options.map((opt, index) => ({ id: index, text: opt })),
-        durationSeconds: parsedDurationSeconds, // Use the validated duration
+        durationSeconds: parsedDurationSeconds,
     };
     pollResults = activePoll.options.reduce((acc, opt) => ({ ...acc, [opt.id]: 0 }), {});
     pollVotesByStudent[activePoll.id] = {};
