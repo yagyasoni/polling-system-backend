@@ -7,7 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "polling-system-frontend-assignment-c6kqqtlub.vercel.app", // Your React app's origin
+        origin: "https://polling-system-frontend-assignment-c6kqqtlub.vercel.app/", // Your React app's origin
         methods: ["GET", "POST"]
     }
 });
