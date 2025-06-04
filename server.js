@@ -99,6 +99,16 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Handle teacher confirming poll completion
+    socket.on('clearActivePoll', () => {
+        console.log('[SERVER] Teacher confirmed poll completion. Clearing active poll data.');
+        activePoll = null;
+        pollResults = {};
+        pollVotesByStudent = {};
+        // Optionally, inform all clients that the poll has ended/cleared
+        io.emit('pollEnded', { pollId: null, message: 'Current poll has been cleared by the teacher.' });
+    });
+
     socket.on('disconnect', () => {
         console.log(`[SERVER] User disconnected: ${socket.id}`);
     });
